@@ -5,6 +5,7 @@ import pymupdf  # PyMuPDF
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import json
+from pathlib import Path
 
 router = APIRouter()
 
@@ -82,6 +83,7 @@ async def extract_pdf_lines(
             detail=f"Failed to process PDF: {str(e)}"
         )
 
+#TODO maybe make it so that min, max and normalization is done here already, so we don't need to process the data again
 def extract_lines_sync(file_bytes: bytes) -> List[Dict[str, float]]:
     """Synchronous PDF extraction function (CPU-bound)"""
     all_lines = []
@@ -130,6 +132,10 @@ def extract_lines_sync(file_bytes: bytes) -> List[Dict[str, float]]:
                         })
                         
     finally:
+        #Write the extracted lines to a JSON file for debugging
+        file_path = Path("uploads")
+        if(not file_path.exists()):
+            file_path.mkdir(parents=True)
         #Write the extracted lines to a JSON file for debugging
         with open(f"./uploads/page_{page_num}_lines.json", "w") as f:
             json.dump(all_lines, f, indent=2)

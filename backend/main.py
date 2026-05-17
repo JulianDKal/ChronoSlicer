@@ -34,23 +34,3 @@ app.include_router(api_pdf_extraction.router, prefix="/api")
 @app.get("/")
 async def root():
     return {"message": "Welcome to the API"}
-
-# API Routes
-@app.get("/api/health")
-async def health_check():
-    return {"status": "healthy"}
-
-@app.get("/api/lines")
-async def get_lines():
-    zigzag_lines = [
-        {"x1": -6, "y1": 4, "x2": -4, "y2": 2},
-        {"x1": -4, "y1": 2, "x2": -2, "y2": 4},
-        {"x1": -2, "y1": 4, "x2": 0, "y2": 2},
-        {"x1": 0, "y1": 2, "x2": 2, "y2": 4},
-        {"x1": 2, "y1": 4, "x2": 4, "y2": 2},
-        {"x1": 4, "y1": 2, "x2": 6, "y2": 4},
-    ]
-
-    return {
-        "lines": zigzag_lines
-    }

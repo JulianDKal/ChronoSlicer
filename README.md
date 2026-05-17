@@ -1,3 +1,10 @@
+# Requirements
+
+- pip 26
+- python 3.14
+- node v26
+- npm 11.*
+
 # Package Installation
 
 In the *backend* directory, run the following commands:
