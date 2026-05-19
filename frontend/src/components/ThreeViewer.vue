@@ -88,13 +88,21 @@ const drawObjects = (data) => {
   // Build vertices array
   const vertices = []
   const curves = [] //THREE.Line[]
+  const colors = []
   
   data.forEach(object => {
     if(object.type === 'l') {
-      if (object.x1 !== undefined && object.y1 !== undefined && object.x2 !== undefined && object.y2 !== undefined) {
       vertices.push(object.x1, object.y1, 0)
       vertices.push(object.x2, object.y2, 0)
-      }
+      // Parse color (convert hex to RGB 0-1 range)
+      const colorHex = object.color || '#000000'
+      const r = parseInt(colorHex.slice(1, 3), 16) / 255
+      const g = parseInt(colorHex.slice(3, 5), 16) / 255
+      const b = parseInt(colorHex.slice(5, 7), 16) / 255
+      
+      // Each vertex needs its own color (same for both ends of the line)
+      colors.push(r, g, b)  // First vertex
+      colors.push(r, g, b)  // Second vertex
     }
     else if(object.type === 'c') {
         const curve = new THREE.CubicBezierCurve(
@@ -106,7 +114,9 @@ const drawObjects = (data) => {
         
         const points = curve.getPoints(20) // Get 20 points along the curve
         const geometry = new THREE.BufferGeometry().setFromPoints(points)
-        const material = new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 2 })
+        //TODO: Make it so we don't create a new material for each curve
+        console.log(`Curve color: ${object.color}`)
+        const material = new THREE.LineBasicMaterial({ color: object.color, linewidth: 2 })
         const curveObject = new THREE.Line(geometry, material)
         curves.push(curveObject)
     }
@@ -121,8 +131,9 @@ const drawObjects = (data) => {
   // Create geometry and material
   const geometry = new THREE.BufferGeometry()
   geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices), 3))
+  geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3))
   
-  const material = new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 2 })
+  const material = new THREE.LineBasicMaterial({ color: 0xffffff, vertexColors: true, linewidth: 2 })
   
   // Create and add line segments
   lineObject = new THREE.Group()

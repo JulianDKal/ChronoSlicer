@@ -6,6 +6,7 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import json
 from pathlib import Path
+from .utils import rgb_to_hex
 
 router = APIRouter()
 
@@ -52,16 +53,17 @@ async def extract_pdf_lines(
             
             # Apply normalization
             for line in lines:
+                    #The additional operation on the y coordinates flips the y-axis, so that the lines are rendered correctly in Three.js
                     line['x1'] = round((line['x1'] - min_val) * scale - 5, 2)
-                    line['y1'] = round((line['y1'] - min_val) * scale - 5, 2)
+                    line['y1'] = round(((max_val - line['y1'])  - min_val) * scale - 5, 2)
                     line['x2'] = round((line['x2'] - min_val) * scale - 5, 2)
-                    line['y2'] = round((line['y2'] - min_val) * scale - 5, 2)
+                    line['y2'] = round(((max_val - line['y2']) - min_val) * scale - 5, 2)
                     #If it's a curve, also normalize the additional points
                     if(line['type'] == 'c'):
                         line['x3'] = round((line['x3'] - min_val) * scale - 5, 2)
-                        line['y3'] = round((line['y3'] - min_val) * scale - 5, 2)
+                        line['y3'] = round(((max_val - line['y3']) - min_val) * scale - 5, 2)
                         line['x4'] = round((line['x4'] - min_val) * scale - 5, 2)
-                        line['y4'] = round((line['y4'] - min_val) * scale - 5, 2)
+                        line['y4'] = round(((max_val - line['y4']) - min_val) * scale - 5, 2)
         # Return standard JSON response
         return JSONResponse(
             content={
@@ -97,8 +99,11 @@ def extract_lines_sync(file_bytes: bytes) -> List[Dict[str, float]]:
             drawings = page.get_drawings()
             
             for drawing in drawings:
+                line_color = rgb_to_hex(drawing['color'])
+                print(line_color)
                 for item in drawing['items']:
                     #For now, we only process the line segments
+                    # print(item)
                     if item[0] == 'l':  # Line segment
                         start, end = item[1], item[2]
                         all_lines.append({
@@ -106,16 +111,17 @@ def extract_lines_sync(file_bytes: bytes) -> List[Dict[str, float]]:
                             "x1": float(start.x),
                             "y1": float(start.y),
                             "x2": float(end.x),
-                            "y2": float(end.y)
+                            "y2": float(end.y),
+                            "color": line_color
                         })
                     elif item[0] == 're':  # Rectangle -> 4 lines
                         rect = item[1]
                         x0, y0, x1, y1 = rect.x0, rect.y0, rect.x1, rect.y1
                         all_lines.extend([
-                            {"type": "l", "x1": x0, "y1": y0, "x2": x1, "y2": y0},
-                            {"type": "l", "x1": x1, "y1": y0, "x2": x1, "y2": y1},
-                            {"type": "l", "x1": x1, "y1": y1, "x2": x0, "y2": y1},
-                            {"type": "l", "x1": x0, "y1": y1, "x2": x0, "y2": y0},
+                            {"type": "l", "x1": x0, "y1": y0, "x2": x1, "y2": y0, "color": line_color},
+                            {"type": "l", "x1": x1, "y1": y0, "x2": x1, "y2": y1, "color": line_color},
+                            {"type": "l", "x1": x1, "y1": y1, "x2": x0, "y2": y1, "color": line_color},
+                            {"type": "l", "x1": x0, "y1": y1, "x2": x0, "y2": y0, "color": line_color},
                         ])
                     #cubic bezier curve
                     elif item[0] == 'c':
@@ -128,7 +134,8 @@ def extract_lines_sync(file_bytes: bytes) -> List[Dict[str, float]]:
                             "x3": float(item[3].x),
                             "y3": float(item[3].y),
                             "x4": float(item[4].x),
-                            "y4": float(item[4].y)
+                            "y4": float(item[4].y),
+                            "color": line_color
                         })
                         
     finally:
