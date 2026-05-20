@@ -69,6 +69,21 @@ const initThree = () => {
   
 }
 
+async function handleDownloadRequest() {
+  console.log('Download request received in ThreeViewer') 
+  try {
+    const response = await fetch('/api/save_pdf')
+    if (!response.ok) {
+      throw new Error('Failed to save PDF')
+    }
+    else {
+      console.log('PDF save request successful')
+    }
+  } catch (error) {
+    console.error('Error saving PDF:', error)
+  }
+}
+
 const handleLinesUpdate = (lines) => {
   console.log('Received via event bus:', lines)
   drawObjects(lines)
@@ -115,7 +130,7 @@ const drawObjects = (data) => {
         const points = curve.getPoints(20) // Get 20 points along the curve
         const geometry = new THREE.BufferGeometry().setFromPoints(points)
         //TODO: Make it so we don't create a new material for each curve
-        console.log(`Curve color: ${object.color}`)
+        // console.log(`Curve color: ${object.color}`)
         const material = new THREE.LineBasicMaterial({ color: object.color, linewidth: 2 })
         const curveObject = new THREE.Line(geometry, material)
         curves.push(curveObject)
@@ -204,13 +219,16 @@ onMounted(() => {
   // loadAndDrawLines()
   window.addEventListener('resize', handleResize)
   eventBus.on('lines-updated', handleLinesUpdate)
+  eventBus.on('save_pdf_request', () => {
+    handleDownloadRequest()
+  })  
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
   if (renderer) renderer.dispose()
 })
-  eventBus.on('lines-updated', handleLinesUpdate)
+  eventBus.off('lines-updated', handleLinesUpdate)
 </script>
 
 <style scoped>

@@ -100,7 +100,7 @@ def extract_lines_sync(file_bytes: bytes) -> List[Dict[str, float]]:
             
             for drawing in drawings:
                 line_color = rgb_to_hex(drawing['color'])
-                print(line_color)
+                # print(line_color)
                 for item in drawing['items']:
                     #For now, we only process the line segments
                     # print(item)

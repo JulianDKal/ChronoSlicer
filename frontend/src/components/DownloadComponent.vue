@@ -16,6 +16,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import eventBus from '../eventBus'
 
 // Sample time data (can be updated from props later)
 const elapsedTime = ref(125) // seconds - example: 2 minutes 5 seconds
@@ -29,9 +30,7 @@ const formattedTime = computed(() => {
 
 // Download handler (no functionality yet)
 const handleDownload = () => {
-  console.log('Download clicked - Time:', formattedTime.value)
-  // TODO: Implement download functionality
-  alert('Download functionality coming soon!')
+  eventBus.emit('save_pdf_request');
 }
 
 // Optional: Allow time to be updated from parent component
