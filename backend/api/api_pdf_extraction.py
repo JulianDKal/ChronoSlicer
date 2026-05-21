@@ -1,3 +1,4 @@
+from annotated_types import doc
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 from typing import List, Dict, Any
@@ -11,6 +12,10 @@ from .utils import rgb_to_hex
 router = APIRouter()
 
 executor = ThreadPoolExecutor(max_workers=2)
+
+min_val = 0
+max_val = 0
+range_val = 0
 
 @router.post("/pdf_extraction")
 async def extract_pdf_lines(
@@ -42,7 +47,8 @@ async def extract_pdf_lines(
             # Find all coordinate values
             all_values = []
             for line in lines:
-                all_values.extend([line['x1'], line['y1'], line['x2'], line['y2']])
+                if(line['type'] in ['l', 'c', 're']):
+                    all_values.extend([line['x1'], line['y1'], line['x2'], line['y2']])
             
             min_val = min(all_values)
             max_val = max(all_values)
@@ -53,6 +59,7 @@ async def extract_pdf_lines(
             
             # Apply normalization
             for line in lines:
+                if(line['type'] in ['l', 'c', 're']):
                     #The additional operation on the y coordinates flips the y-axis, so that the lines are rendered correctly in Three.js
                     line['x1'] = round((line['x1'] - min_val) * scale - 5, 2)
                     line['y1'] = round(((max_val - line['y1'])  - min_val) * scale - 5, 2)
@@ -92,8 +99,28 @@ def extract_lines_sync(file_bytes: bytes) -> List[Dict[str, float]]:
     
     # Open PDF from memory
     doc = pymupdf.open(stream=file_bytes, filetype="pdf")
+    mediabox = doc[0].mediabox  # Get the mediabox of the first page for scaling reference
+    # print("Mediabox:", mediabox)
+    print("mediabox size:", doc[0].mediabox_size)
     
     try:
+        try:
+            if len(doc) > 0:
+                page0 = doc[0]
+                # Check if mediabox_size exists and has valid values
+                if hasattr(page0, 'mediabox_size') and page0.mediabox_size:
+                    size = page0.mediabox_size
+                    all_lines.append({
+                        "type": "mbox",
+                        "w": float(size.x) if size.x is not None else 0,
+                        "h": float(size.y) if size.y is not None else 0
+                    })
+                    print(f"Added mediabox: w={size.x}, h={size.y}")
+                else:
+                    print("mediabox_size not available")
+        except Exception as e:
+            print(f"Error adding mediabox info: {e}")   
+
         for page_num in range(len(doc)):
             page = doc[page_num]
             drawings = page.get_drawings()
@@ -103,9 +130,9 @@ def extract_lines_sync(file_bytes: bytes) -> List[Dict[str, float]]:
                 # print(line_color)
                 for item in drawing['items']:
                     #For now, we only process the line segments
-                    # print(item)
                     if item[0] == 'l':  # Line segment
                         start, end = item[1], item[2]
+                        
                         all_lines.append({
                             "type": "l",
                             "x1": float(start.x),
@@ -136,8 +163,7 @@ def extract_lines_sync(file_bytes: bytes) -> List[Dict[str, float]]:
                             "x4": float(item[4].x),
                             "y4": float(item[4].y),
                             "color": line_color
-                        })
-                        
+                        })                        
     finally:
         #Write the extracted lines to a JSON file for debugging
         file_path = Path("uploads")

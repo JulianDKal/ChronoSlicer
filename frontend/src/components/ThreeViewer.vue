@@ -135,6 +135,10 @@ const drawObjects = (data) => {
         const curveObject = new THREE.Line(geometry, material)
         curves.push(curveObject)
     }
+    else if(object.type === 'mbox') {
+      console.log('MediaBox data received:', object.w, " ", object.h)
+      // Optionally, we could use this to adjust the camera view or scaling
+    }
     
   })
 
@@ -164,6 +168,8 @@ const drawObjects = (data) => {
 
 const drawRectangleFrame = () => {
   // Define rectangle boundaries (from -11 to 5 in X, -4 to 8 in Y)
+
+
   const left = -11
   const right = 5
   const top = 8
